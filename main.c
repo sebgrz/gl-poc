@@ -1,5 +1,6 @@
 #define GL_GLEXT_PROTOTYPES
 
+#include <cglm/struct.h>
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
 #include <stdio.h>
@@ -8,12 +9,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-typedef struct Vec3
-{
-    float x, y, z;
-} Vec3;
-
-const Vec3 vertices[] = {
+const vec3s vertices[] = {
     {.x = 0.0f, .y = 0.5f, .z = 0.0f}, // vertex
     {.x = 0.0f, .y = 1.0f, .z = 0.0f},
     {.x = 0.0f, .y = 0.0f, .z = 0.0f}, // vertex
@@ -103,9 +99,9 @@ int main()
 
     glBindBuffer(GL_ARRAY_BUFFER, triangleVertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(Vec3), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(Vec3), (void *)(sizeof(Vec3)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)(sizeof(vec3)));
     glEnableVertexAttribArray(1);
 
     // Texture
