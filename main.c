@@ -1,8 +1,8 @@
 #define GL_GLEXT_PROTOTYPES
 
-#include <cglm/struct.h>
 #include <GL/gl.h>
 #include <GLFW/glfw3.h>
+#include <cglm/struct.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10,23 +10,29 @@
 #include "stb_image.h"
 
 const vec3s vertices[] = {
-    {.x = 0.0f, .y = 0.5f, .z = 0.0f}, // vertex
+    {.x = 0.0f, .y = 100.0f, .z = 0.0f}, // vertex
     {.x = 0.0f, .y = 1.0f, .z = 0.0f},
-    {.x = 0.0f, .y = 0.0f, .z = 0.0f}, // vertex
+    {.x = 0.0f, .y = 0.0f, .z = 0.0f},     // vertex
     {.x = 0.0f, .y = 0.0f, .z = 0.0f},
-    {.x = 0.5f, .y = 0.0f, .z = 0.0f}, // vertex
+    {.x = 100.0f, .y = 0.0f, .z = 0.0f},   // vertex
     {.x = 1.0f, .y = 0.0f, .z = 0.0f},
-    {.x = 0.5f, .y = 0.0f, .z = 0.0f}, // vertex
+    {.x = 100.0f, .y = 0.0f, .z = 0.0f},   // vertex
     {.x = 1.0f, .y = 0.0f, .z = 0.0f},
-    {.x = 0.5f, .y = 0.5f, .z = 0.0f}, // vertex
+    {.x = 100.0f, .y = 100.0f, .z = 0.0f}, // vertex
     {.x = 1.0f, .y = 1.0f, .z = 0.0f},
-    {.x = 0.0f, .y = 0.5f, .z = 0.0f}, // vertex
+    {.x = 0.0f, .y = 100.0f, .z = 0.0f},   // vertex
     {.x = 0.0f, .y = 1.0f, .z = 0.0f},
 };
 
 GLuint triangleVertexBuffer;
 GLuint vertexArrayObject;
 GLuint texture;
+
+typedef struct Object
+{
+    GLuint vertexArrayObjectID;
+    vec3s position;
+} Object;
 
 char *readFile(const char *filename)
 {
@@ -119,7 +125,22 @@ int main()
     stbi_image_free(textureData);
 
     glUseProgram(shaderProgram);
-    glUniform1i(glGetUniformLocation(shaderProgram, "tex"), 0);
+
+    GLuint uniformTextureID = glGetUniformLocation(shaderProgram, "tex");
+    GLuint uniformModelID = glGetUniformLocation(shaderProgram, "model");
+    GLuint uniformCameraID = glGetUniformLocation(shaderProgram, "camera");
+    GLuint uniformProjectionID = glGetUniformLocation(shaderProgram, "projection");
+
+    glUniform1i(uniformTextureID, 0);
+
+    Object objects[] = {
+        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 0.0f, .y = 0.0f, .z = 0.0f}},
+        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 150.0f, .y = 0.0f, .z = 0.0f}},
+    };
+
+    mat4s cameraMatrix = glms_translated(GLMS_MAT4_IDENTITY, (vec3s){.x = 0.0f, .y = 0.0f, .z = -0.1f});
+    mat4s projectionMatrix = glms_ortho(0.0f, 640.0f, 0.0f, 480.0f, 0.1f, 100.0f);
+
     while (!glfwWindowShouldClose(window))
     {
         glClearColor(0.5f, 0.5f, 0.5f, 1.f);
@@ -129,8 +150,19 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glBindVertexArray(vertexArrayObject);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        glUniformMatrix4fv(uniformProjectionID, 1, GL_FALSE, (const GLfloat *)projectionMatrix.raw);
+        glUniformMatrix4fv(uniformCameraID, 1, GL_FALSE, (const GLfloat *)cameraMatrix.raw);
+        for (int i = 0; i < 2; i++)
+        {
+            Object *obj = (objects + i);
+
+            mat4s modelMatrix = glms_translated(GLMS_MAT4_IDENTITY, obj->position);
+            glUniformMatrix4fv(uniformModelID, 1, GL_FALSE, (const GLfloat *)modelMatrix.raw);
+
+            glBindVertexArray(obj->vertexArrayObjectID);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
