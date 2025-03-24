@@ -30,6 +30,8 @@ GLuint triangleVertexBuffer;
 GLuint vertexArrayObject;
 GLuint texture;
 
+int cameraLeftMove, cameraRightMove, cameraUpMove, cameraDownMove;
+
 typedef struct Object
 {
     GLuint vertexArrayObjectID;
@@ -37,6 +39,44 @@ typedef struct Object
     ivec2s spritePosition;
 } Object;
 
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    switch (key) {
+        case GLFW_KEY_UP:
+            if (action == GLFW_PRESS) {
+                cameraUpMove = 1;
+            } else if (action == GLFW_RELEASE) {
+                cameraUpMove = 0;
+            }
+            return;
+        case GLFW_KEY_DOWN:
+            if (action == GLFW_PRESS) {
+                cameraDownMove = 1;
+            } else if (action == GLFW_RELEASE) {
+                cameraDownMove = 0;
+            }
+            return;
+        case GLFW_KEY_LEFT:
+            if (action == GLFW_PRESS) {
+                cameraLeftMove = 1;
+            } else if (action == GLFW_RELEASE) {
+                cameraLeftMove = 0;
+            }
+            return;
+        case GLFW_KEY_RIGHT:
+            if (action == GLFW_PRESS) {
+                cameraRightMove = 1;
+            } else if (action == GLFW_RELEASE) {
+                cameraRightMove = 0;
+            }
+            return;
+        default:
+            return;
+
+    }
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+    }
+}
 char *readFile(const char *filename)
 {
     FILE *f = fopen(filename, "rt");
@@ -88,6 +128,7 @@ int main()
         return -1;
     }
 
+    glfwSetKeyCallback(window, keyCallback);
     glfwMakeContextCurrent(window);
 
     GLuint vertexShader = loadAndCompileShader("vertex_shader.glsl", GL_VERTEX_SHADER);
@@ -146,11 +187,24 @@ int main()
         {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 150.0f, .y = 0.0f, .z = 0.0f},  .spritePosition = { .x = 1, .y = 6 }},
     };
 
-    mat4s cameraMatrix = glms_translated(GLMS_MAT4_IDENTITY, (vec3s){.x = 0.0f, .y = 0.0f, .z = -0.1f});
+    float cameraX, cameraY = 0.0f;
     mat4s projectionMatrix = glms_ortho(0.0f, 640.0f, 0.0f, 480.0f, 0.1f, 100.0f);
 
     while (!glfwWindowShouldClose(window))
     {
+        if (cameraLeftMove) {
+            cameraX += 1.0;
+        }
+        if (cameraRightMove) {
+            cameraX -= 1.0;
+        }
+        if (cameraUpMove) {
+            cameraY -= 1.0;
+        }
+        if (cameraDownMove) {
+            cameraY += 1.0;
+        }
+        mat4s cameraMatrix = glms_translated(GLMS_MAT4_IDENTITY, (vec3s){.x = cameraX, .y = cameraY, .z = -0.1f});
         glClearColor(0.5f, 0.5f, 0.5f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
