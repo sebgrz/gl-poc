@@ -9,6 +9,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define SPRITE_TILE_SIZE 16
+
 const vec3s vertices[] = {
     {.x = 0.0f, .y = 100.0f, .z = 0.0f}, // vertex
     {.x = 0.0f, .y = 1.0f, .z = 0.0f},
@@ -32,6 +34,7 @@ typedef struct Object
 {
     GLuint vertexArrayObjectID;
     vec3s position;
+    ivec2s spritePosition;
 } Object;
 
 char *readFile(const char *filename)
@@ -115,10 +118,12 @@ int main()
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // texture without blur
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     int textureWidth, textureHeight, textureChannels;
+    stbi_set_flip_vertically_on_load(1);
     unsigned char *textureData = stbi_load("spelunky_shop.png", &textureWidth, &textureHeight, &textureChannels, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, textureWidth, textureHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -130,12 +135,15 @@ int main()
     GLuint uniformModelID = glGetUniformLocation(shaderProgram, "model");
     GLuint uniformCameraID = glGetUniformLocation(shaderProgram, "camera");
     GLuint uniformProjectionID = glGetUniformLocation(shaderProgram, "projection");
+    GLuint uniformSpritePositionID = glGetUniformLocation(shaderProgram, "spritePosition");
+    GLuint uniformSpriteSizeID = glGetUniformLocation(shaderProgram, "spriteSize");
 
     glUniform1i(uniformTextureID, 0);
+    glUniform1f(uniformSpriteSizeID, 1.0 / (textureWidth / SPRITE_TILE_SIZE));
 
     Object objects[] = {
-        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 0.0f, .y = 0.0f, .z = 0.0f}},
-        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 150.0f, .y = 0.0f, .z = 0.0f}},
+        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 0.0f, .y = 0.0f, .z = 0.0f}, .spritePosition = { .x = 0, .y = 6 }},
+        {.vertexArrayObjectID = vertexArrayObject, .position = {.x = 150.0f, .y = 0.0f, .z = 0.0f},  .spritePosition = { .x = 1, .y = 6 }},
     };
 
     mat4s cameraMatrix = glms_translated(GLMS_MAT4_IDENTITY, (vec3s){.x = 0.0f, .y = 0.0f, .z = -0.1f});
@@ -159,6 +167,7 @@ int main()
 
             mat4s modelMatrix = glms_translated(GLMS_MAT4_IDENTITY, obj->position);
             glUniformMatrix4fv(uniformModelID, 1, GL_FALSE, (const GLfloat *)modelMatrix.raw);
+            glUniform2uiv(uniformSpritePositionID, 1, (const GLuint *)obj->spritePosition.raw);
 
             glBindVertexArray(obj->vertexArrayObjectID);
             glDrawArrays(GL_TRIANGLES, 0, 6);
