@@ -143,6 +143,17 @@ int main()
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    vertexShader = loadAndCompileShader("vertex_shader_framebuffer.glsl", GL_VERTEX_SHADER);
+    fragmentShader = loadAndCompileShader("fragment_shader_framebuffer.glsl", GL_FRAGMENT_SHADER);
+    GLuint shaderProgramFramebuffer = glCreateProgram();
+    glAttachShader(shaderProgramFramebuffer, vertexShader);
+    glAttachShader(shaderProgramFramebuffer, fragmentShader);
+    glLinkProgram(shaderProgramFramebuffer);
+    glDetachShader(shaderProgramFramebuffer, vertexShader);
+    glDetachShader(shaderProgramFramebuffer, fragmentShader);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     glGenBuffers(1, &triangleVertexBuffer);
     glGenVertexArrays(1, &vertexArrayObject);
     glBindVertexArray(vertexArrayObject);
@@ -190,8 +201,58 @@ int main()
     float cameraX, cameraY = 0.0f;
     mat4s projectionMatrix = glms_ortho(0.0f, 640.0f, 0.0f, 480.0f, 0.1f, 100.0f);
 
+    // Framebuffer -->
+    GLuint frameBuffer;
+    GLuint renderedTexture;
+    glGenFramebuffers(1, &frameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    glGenTextures(1, &renderedTexture);
+    glBindTexture(GL_TEXTURE_2D, renderedTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture, 0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    GLuint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        printf("framebuffer status: %d", status);
+        exit(123);
+    }
+
+    static const GLfloat framebufferVertices[] = { 
+      -1.0f, -1.0f, 0.0f,
+       1.0f, -1.0f, 0.0f,
+      -1.0f,  1.0f, 0.0f,
+      -1.0f,  1.0f, 0.0f,
+       1.0f, -1.0f, 0.0f,
+       1.0f,  1.0f, 0.0f,
+    };
+
+    GLuint framebufferVertexbuffer;
+    glGenBuffers(1, &framebufferVertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, framebufferVertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(framebufferVertices), framebufferVertices, GL_STATIC_DRAW);
+    GLuint uniformRenderedTextureID = glGetUniformLocation(shaderProgramFramebuffer, "renderedTexture");
+    // <--- Framebuffer
+
     while (!glfwWindowShouldClose(window))
     {
+        // TODO
+        glBindBuffer(GL_ARRAY_BUFFER, triangleVertexBuffer);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)(sizeof(vec3)));
+        glEnableVertexAttribArray(1);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+        glViewport(0,0,640,480);
+        
         if (cameraLeftMove) {
             cameraX += 1.0;
         }
@@ -226,6 +287,22 @@ int main()
             glBindVertexArray(obj->vertexArrayObjectID);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
+        
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, 640, 480);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glUseProgram(shaderProgramFramebuffer);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, renderedTexture);
+        glUniform1i(uniformRenderedTextureID, 0);
+
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, framebufferVertexbuffer);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDisableVertexAttribArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
