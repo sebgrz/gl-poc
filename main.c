@@ -233,23 +233,19 @@ int main()
        1.0f,  1.0f, 0.0f,
     };
 
-    GLuint framebufferVertexbuffer;
+    GLuint framebufferVertexbuffer, framebufferVAO;
     glGenBuffers(1, &framebufferVertexbuffer);
+    glGenVertexArrays(1, &framebufferVAO);
+    glBindVertexArray(framebufferVAO);
     glBindBuffer(GL_ARRAY_BUFFER, framebufferVertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(framebufferVertices), framebufferVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
     GLuint uniformRenderedTextureID = glGetUniformLocation(shaderProgramFramebuffer, "renderedTexture");
     // <--- Framebuffer
 
     while (!glfwWindowShouldClose(window))
     {
-        // TODO
-        glBindBuffer(GL_ARRAY_BUFFER, triangleVertexBuffer);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 2 * sizeof(vec3), (void *)(sizeof(vec3)));
-        glEnableVertexAttribArray(1);
-
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
         glViewport(0,0,640,480);
         
@@ -298,11 +294,8 @@ int main()
         glBindTexture(GL_TEXTURE_2D, renderedTexture);
         glUniform1i(uniformRenderedTextureID, 0);
 
-        glEnableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, framebufferVertexbuffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+        glBindVertexArray(framebufferVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDisableVertexAttribArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
